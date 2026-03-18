@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Food Ordering Japandi Console - Interactive</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F7F5F0;
+      color: #3B3835;
+      overflow-y: scroll;
+    }
+    
+    /* Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulseSoft {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .animate-fade-in { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .animate-pulse-soft { animation: pulseSoft 0.3s ease-in-out; }
+    
+    /* Tabs */
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    
+    .nav-btn { @apply pb-3 px-1 text-sm font-medium border-b-2 text-[#8F8880] border-transparent hover:text-[#3B3835] transition-all cursor-pointer; }
+    .nav-btn.active { @apply text-[#798D7B] border-[#798D7B]; }
+    
+    /* Badges */
+    .badge { @apply inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase shadow-sm transition-transform hover:scale-105; }
+    .badge-admin { background-color: #E2EADD; color: #4B6043; }
+    .badge-manager { background-color: #E6EDF2; color: #516A7E; }
+    .badge-member { background-color: #F1EBE1; color: #8F7C63; }
+    .badge-india { background-color: #F4E7E0; color: #9E6B52; }
+    .badge-america { background-color: #EAECEF; color: #626A76; }
+    .badge-status { background-color: #E2EADD; color: #4B6043; }
+    .badge-pending { background-color: #F1EBE1; color: #8F7C63; }
+    
+    /* Cards */
+    .card { @apply bg-white border border-[#EBE6E0] rounded-[24px] p-6 transition-all duration-300; }
+    .card:hover { @apply shadow-lg border-transparent transform -translate-y-1; }
+    .card-header { @apply flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6; }
+    .card-title { @apply text-xl font-semibold text-[#2C2A28] tracking-tight; }
+    .card-subtitle { @apply text-xs text-[#8F8880] mt-1.5 leading-relaxed; }
+
+    /* Buttons */
+    .btn-primary { @apply relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md transform hover:-translate-y-0.5 hover:shadow-lg active:scale-95; background-color: #798D7B; color: white; border: 1px solid transparent; }
+    .btn-primary:hover { background-color: #647666; }
+    .btn-secondary { @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95; background-color: #FAF8F5; color: #3B3835; border: 1px solid #EBE6E0; hover:border-[#D4CFC6] hover:bg-white hover:shadow-md; }
+    .btn-danger { @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95; background-color: #FAF8F5; color: #CCA390; border: 1px solid #EBE6E0; hover:bg-[#CCA390] hover:text-white hover:border-transparent hover:shadow-md; }
+    
+    /* Inputs */
+    .input-field { @apply w-full rounded-2xl border border-[#EBE6E0] bg-[#FAF8F5] px-4 py-3.5 text-sm text-[#3B3835] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#798D7B]/20 focus:border-[#798D7B] focus:bg-white shadow-sm hover:border-[#D4CFC6]; }
+    
+    /* Status Messages */
+    .status-msg { @apply text-xs font-medium tracking-wide flex items-center gap-2 px-3 py-1.5 rounded-lg opacity-0 transition-opacity duration-300; }
+    .status-msg.show { @apply opacity-100; }
+    .status-msg.success { background-color: #E2EADD; color: #4B6043; }
+    .status-msg.error { background-color: #F4E7E0; color: #9E6B52; }
+    .status-msg.neutral { background-color: #EAECEF; color: #626A76; }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #D4CFC6; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #8F8880; }
+  </style>
+</head>
+<body class="min-h-screen">
+  
+  <!-- FLOATING STATUS TOAST -->
+  <div id="toast" class="fixed top-6 right-6 z-50 transform transition-all duration-500 translate-y-[-20px] opacity-0 pointer-events-none">
+    <div id="toast-content" class="bg-white border border-[#EBE6E0] shadow-xl rounded-2xl px-6 py-4 flex items-center gap-3">
+       <div id="toast-icon" class="w-2 h-2 rounded-full bg-[#798D7B]"></div>
+       <span id="toast-message" class="text-sm font-medium text-[#3B3835]">Notification</span>
+    </div>
+  </div>
+
+  <div class="max-w-5xl mx-auto px-6 py-12 space-y-10">
+    
+    <!-- HEADER -->
+    <header class="animate-fade-in flex flex-col md:flex-row md:items-start md:justify-between gap-8 pb-8 border-b border-[#EBE6E0]">
+      <div>
+        <h1 class="text-4xl font-semibold tracking-tight text-[#2C2A28]">Izakaya Ordering</h1>
+        <p class="text-[#8F8880] text-sm mt-3 max-w-sm leading-relaxed">
+          Select your roile, browse exquisite menus, and seamlessly transition through checkout.
+        </p>
+      </div>
+      <div class="bg-white border border-[#EBE6E0] rounded-[24px] p-5 shadow-sm min-w-[320px] transition-all hover:shadow-md">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-[#8F8880] mb-3 flex items-center justify-between">
+          <span>Identity Config</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+        </p>
+        <select id="userSelect" class="input-field py-2.5 font-medium cursor-pointer">
+          <option value="1">1 — Nick Fury — ADMIN</option>
+          <option value="2">2 — Captain Marvel — MANAGER (India)</option>
+          <option value="3">3 — Captain America — MANAGER (America)</option>
+          <option value="4">4 — Thanos — MEMBER (India)</option>
+          <option value="5">5 — Thor — MEMBER (India)</option>
+          <option value="6">6 — Travis — MEMBER (America)</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="flex gap-8 border-b border-[#EBE6E0] animate-fade-in" style="animation-delay: 0.1s;">
+      <button onclick="switchTab('tab-menu')" id="nav-menu" class="nav-btn active">Discover Menus</button>
+      <button onclick="switchTab('tab-cart')" id="nav-cart" class="nav-btn flex items-center gap-2">
+        Checkout 
+        <span id="cart-badge" class="bg-[#798D7B] text-white text-[10px] px-2 py-0.5 rounded-full opacity-0 transition-opacity">0</span>
+      </button>
+      <button onclick="switchTab('tab-orders')" id="nav-orders" class="nav-btn">Activity & Payments</button>
+    </nav>
+
+    <!-- TAB 1: MENU DISCOVERY -->
+    <section id="tab-menu" class="tab-pane active pb-16">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-medium text-[#2C2A28]">Curated Kitchens</h2>
+        <button onclick="loadRestaurants()" class="btn-secondary px-4 py-2 text-xs shadow-sm">Discover New</button>
+      </div>
+      <div id="restaurants" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="col-span-1 border border-dashed border-[#D4CFC6] rounded-[24px] p-10 flex flex-col items-center justify-center text-center text-[#8F8880]">
+           <svg class="w-8 h-8 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+           <p class="text-sm">Click "Discover New" to load region-specific menus.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CART & CHECKOUT -->
+    <section id="tab-cart" class="tab-pane pb-16 max-w-2xl mx-auto">
+      <div class="card bg-white">
+        <div class="card-header border-b border-[#EBE6E0] pb-6 mb-6">
+           <h2 class="text-2xl font-medium text-[#2C2A28]">Your Basket</h2>
+        </div>
+        <div id="cartInfo" class="space-y-4 min-h-[150px]">
+          <div class="flex flex-col items-center justify-center text-center py-10 text-[#8F8880]">
+             <svg class="w-10 h-10 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+             <p class="text-sm">Your basket feels light. Browse menus to add items.</p>
+             <button onclick="switchTab('tab-menu')" class="mt-4 text-[#798D7B] text-sm font-medium hover:underline">Back to Menus</button>
+          </div>
+        </div>
+        <div id="cart-actions" class="hidden mt-8 pt-6 border-t border-[#EBE6E0]">
+          <div class="flex items-center justify-between mb-6">
+            <span class="text-sm font-medium text-[#8F8880]">Total</span>
+            <span id="cart-total" class="text-2xl font-bold text-[#2C2A28]">$0.00</span>
+          </div>
+          <button onclick="createOrder()" class="btn-primary w-full text-base py-4 hover:shadow-xl transition-all">
+            Secure Checkout
+            <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ORDERS & PAYMENTS -->
+    <section id="tab-orders" class="tab-pane pb-16">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Timeline -->
+        <div class="lg:col-span-2 space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-medium text-[#2C2A28]">Order Timeline</h2>
+            <button onclick="loadOrders()" class="btn-secondary px-4 py-2 text-xs shadow-sm">Refresh</button>
+          </div>
+          <div id="orders" class="space-y-4">
+             <div class="card text-center py-10 text-[#8F8880] border-dashed border-[#D4CFC6] bg-transparent shadow-none hover:shadow-none hover:translate-y-0">
+               <p class="text-sm">No recent activity. Refresh to check for updates.</p>
+             </div>
+          </div>
+        </div>
+
+        <!-- Payments Side -->
+        <div class="lg:col-span-1 space-y-6">
+          <h2 class="text-2xl font-medium text-[#2C2A28]">Wallet</h2>
+          <div class="card">
+            <div class="flex items-center justify-between mb-5">
+              <span class="text-sm font-medium text-[#2C2A28]">Stored Method</span>
+              <button onclick="loadPayments()" class="text-[#798D7B] text-xs hover:underline">Sync</button>
+            </div>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-widest text-[#8F8880] mb-1.5">Type</label>
+                <input id="pmType" class="input-field py-2.5" placeholder="e.g. VISACARD">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-widest text-[#8F8880] mb-1.5">Digits</label>
+                <input id="pmDetails" class="input-field py-2.5" placeholder="**** **** **** 4242">
+              </div>
+              <button onclick="updatePayment()" class="btn-secondary w-full border-[#798D7B]/20 text-[#798D7B] hover:bg-[#798D7B] hover:text-white mt-2">
+                Save to Vault
+              </button>
+              <div id="payments" class="text-[11px] text-[#8F8880] leading-relaxed pt-2 border-t border-[#EBE6E0] mt-4">No method loaded.</div>
+            </div>
+          </div>
+          
+          <!-- receipt area inside tab 3 -->
+          <div id="receiptSection" class="card border-[#798D7B] border-opacity-50 shadow-md hidden animate-fade-in bg-[#FAF8F5]">
+            <h2 class="text-lg font-medium text-[#4B6043] mb-3 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              Payment Success
+            </h2>
+            <div id="receiptContent" class="text-xs text-[#5B5550] whitespace-pre-line font-mono p-4 bg-white rounded-xl shadow-inner border border-[#EBE6E0]"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- PAYMENT AUTHORIZATION MODAL -->
+  <div id="paymentModal" class="fixed inset-0 hidden items-center justify-center bg-[#2C2A28]/50 backdrop-blur-md z-50 transition-opacity opacity-0 duration-300">
+    <div class="bg-white rounded-[32px] p-10 w-full max-w-md shadow-2xl transform scale-95 transition-transform duration-300 relative overflow-hidden" id="modalContent">
+      <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#798D7B] to-[#D4A373]"></div>
+      <h2 class="text-3xl font-medium text-[#2C2A28] mb-2 mt-2">Authorize Pay</h2>
+      <p class="text-sm text-[#8F8880] mb-8 leading-relaxed">
+        Verify identity details to process the transaction for Order <span id="modalOrderId" class="font-bold text-[#3B3835]"></span>.
+      </p>
+      <div class="space-y-6 mb-10">
+        <div>
+          <label class="block text-[10px] font-bold text-[#8F8880] uppercase tracking-widest mb-2">Secure Entry</label>
+          <input id="payDetails" class="input-field text-lg text-center tracking-[0.2em] font-mono" placeholder="Auth Token...">
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <button onclick="closePaymentModal()" class="btn-danger w-1/3 hover:bg-white hover:text-[#CCA390] hover:border-[#CCA390]">
+          Cancel
+        </button>
+        <button onclick="confirmPayment()" class="btn-primary w-2/3 py-3.5 shadow-lg shadow-[#798D7B]/30 hover:shadow-[#798D7B]/50">
+          Process Securely
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let cart = { restaurantId: null, items: [] };
+    let paymentOrderId = null;
+
+    // UI Utilities
+    function showToast(message, type = 'neutral') {
+      const toast = document.getElementById('toast');
+      const msg = document.getElementById('toast-message');
+      const icon = document.getElementById('toast-icon');
+      
+      msg.textContent = message;
+      if(type === 'success') icon.className = 'w-2 h-2 rounded-full bg-[#798D7B]';
+      else if(type === 'error') icon.className = 'w-2 h-2 rounded-full bg-[#CCA390]';
+      else icon.className = 'w-2 h-2 rounded-full bg-[#3B3835]';
+      
+      toast.classList.remove('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 4000);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      const btnId = 'nav-' + tabId.split('-')[1];
+      document.getElementById(btnId).classList.add('active');
+      
+      if(tabId === 'tab-menu' && document.getElementById('restaurants').innerHTML.includes('Click "Discover')) loadRestaurants();
+      if(tabId === 'tab-orders' && document.getElementById('orders').innerHTML.includes('No recent activity')) loadOrders();
+    }
+
+    function updateCartBadge() {
+      const badge = document.getElementById('cart-badge');
+      const len = cart.items.length;
+      badge.textContent = len;
+      if(len > 0) {
+        badge.classList.remove('opacity-0');
+        badge.classList.remove('animate-pulse-soft'); // reset
+        void badge.offsetWidth; // trigger reflow
+        badge.classList.add('animate-pulse-soft');
+      } else {
+        badge.classList.add('opacity-0');
+      }
+    }
+
+    function getUserId() { return document.getElementById('userSelect').value; }
+
+    function api(path, options = {}) {
+      const headers = options.headers || {};
+      headers['Content-Type'] = 'application/json';
+      headers['X-USER-ID'] = getUserId();
+      return fetch(path, { ...options, headers })
+          .then(async response => {
+            const text = await response.text();
+            let body;
+            try { body = text ? JSON.parse(text) : null; } catch (e) { body = text; }
+            if (!response.ok) {
+              const msg = body && body.message ? body.message : text || response.statusText;
+              throw new Error(msg);
+            }
+            return body;
+          });
+    }
+
+    // Domain Logic
+    function loadRestaurants() {
+      const container = document.getElementById('restaurants');
+      container.innerHTML = '<div class="col-span-1 md:col-span-2 text-center text-[#8F8880] animate-pulse">Fetching menus from the cloud...</div>';
+      
+      api('/restaurants')
+          .then(data => {
+            if (!data || data.length === 0) {
+              container.innerHTML = '<div class="col-span-1 md:col-span-2 card text-center text-[#CCA390]">No visible menus for current identity constraints.</div>';
+              return;
+            }
+            let html = '';
+            data.forEach((r, idx) => {
+              html += `<div class="card animate-fade-in" style="animation-delay: ${idx * 0.1}s">`;
+              html += '<div class="flex items-start justify-between mb-6 pb-4 border-b border-[#EBE6E0]">';
+              html += '<div>';
+              html += `<div class="font-medium text-xl text-[#2C2A28] mb-1">${r.name}</div>`;
+              html += `<span class="badge ${r.country === 'INDIA' ? 'badge-india' : 'badge-america'}">${r.country}</span>`;
+              html += '</div>';
+              html += '</div>';
+              html += '<div class="space-y-4">';
+              r.menuItems.forEach(m => {
+                html += '<div class="flex items-center justify-between group">';
+                html += `<div><p class="text-sm font-medium text-[#3B3835] group-hover:text-[#798D7B] transition-colors">${m.name}</p></div>`;
+                html += '<div class="flex items-center gap-3">';
+                html += `<span class="text-[#8F8880] text-sm tabular-nums">$${m.price.toFixed(2)}</span>`;
+                html += `<button class="btn-secondary px-3 py-1.5 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all border-[#EBE6E0]" onclick="addToCart(${r.id},${m.id},'${m.name}',${m.price})">Add</button>`;
+                html += '</div></div>';
+              });
+              html += '</div></div>';
+            });
+            container.innerHTML = html;
+            showToast('Kitchens localized.', 'success');
+          })
+          .catch(err => {
+            container.innerHTML = '<div class="col-span-1 md:col-span-2 text-red-500">Error</div>';
+            showToast(err.message, 'error');
+          });
+    }
+
+    function addToCart(restaurantId, menuItemId, name, price) {
+      if (cart.restaurantId && cart.restaurantId !== restaurantId) {
+        if(!confirm('Switching restaurants clears your current cart. Proceed?')) return;
+        cart = { restaurantId: null, items: [] };
+      }
+      cart.restaurantId = restaurantId;
+      cart.items.push({ menuItemId, quantity: 1, name, price });
+      updateCartBadge();
+      renderCart();
+      showToast(`Added ${name}`, 'success');
+    }
+
+    function renderCart() {
+      const el = document.getElementById('cartInfo');
+      const actionBox = document.getElementById('cart-actions');
+      const totalEl = document.getElementById('cart-total');
+      
+      if (!cart.restaurantId || cart.items.length === 0) {
+        el.innerHTML = '<div class="flex flex-col items-center justify-center text-center py-10 text-[#8F8880] animate-fade-in"><svg class="w-10 h-10 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg><p class="text-sm">Your basket feels light.</p></div>';
+        actionBox.classList.add('hidden');
+        return;
+      }
+      
+      let total = 0;
+      let html = `<div class="mb-5 animate-fade-in"><span class="badge badge-manager shadow-sm">Preparing from Kitchen ID #${cart.restaurantId}</span></div><div class="space-y-3">`;
+      cart.items.forEach((i, idx) => {
+        total += i.price;
+        html += `<div class="flex justify-between items-center text-sm p-4 rounded-xl border border-[#EBE6E0] bg-[#FAF8F5] transition-all hover:border-[#D4CFC6] animate-fade-in" style="animation-delay: ${idx * 0.05}s">`;
+        html += `<span class="font-medium text-[#2C2A28]">${i.name}</span><span class="text-[#8F8880] tabular-nums">$${i.price.toFixed(2)}</span></div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+      totalEl.textContent = `$${total.toFixed(2)}`;
+      actionBox.classList.remove('hidden');
+    }
+
+    function createOrder() {
+      const body = {
+        restaurantId: cart.restaurantId,
+        items: cart.items.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity }))
+      };
+      
+      const btn = document.querySelector('#cart-actions button');
+      btn.innerHTML = '<span class="animate-pulse">Creating Secure Link...</span>';
+      
+      api('/orders', { method: 'POST', body: JSON.stringify(body) })
+          .then(order => {
+            cart = { restaurantId: null, items: [] };
+            updateCartBadge();
+            renderCart();
+            showToast('Initial order established', 'success');
+            switchTab('tab-orders'); // Auto nav to orders!
+          })
+          .catch(err => {
+             showToast(err.message, 'error');
+             btn.innerHTML = 'Secure Checkout <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
+          });
+    }
+
+    function loadOrders() {
+      const container = document.getElementById('orders');
+      container.innerHTML = '<div class="card text-center text-[#8F8880] animate-pulse">Syncing timeline...</div>';
+      
+      api('/orders')
+          .then(data => {
+            if (!data || data.length === 0) {
+              container.innerHTML = '<div class="card text-center py-10 text-[#8F8880]">No timeline activity found.</div>';
+              return;
+            }
+            let html = '';
+            // Sort by ID descending for timeline feel
+            data.sort((a,b) => b.id - a.id).forEach((o, idx) => {
+              let isPend = o.status === 'CREATED';
+              html += `<div class="card relative overflow-hidden animate-fade-in flex flex-col sm:flex-row sm:items-center justify-between gap-4" style="animation-delay: ${idx * 0.08}s">`;
+              if(isPend) html += '<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#CCA390]"></div>';
+              else html += '<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#798D7B]"></div>';
+              
+              html += '<div class="pl-4">';
+              html += `<div class="flex items-center gap-3 mb-2"><span class="text-lg font-bold text-[#2C2A28]">#${o.id}</span> <span class="badge ${isPend ? 'badge-pending' : 'badge-status'}">${o.status}</span></div>`;
+              html += `<div class="text-xs text-[#8F8880]">Origin: User ${o.userId} | Region: ${o.country} | Amount: <span class="font-medium text-[#3B3835]">\$${o.totalAmount || '0'}</span></div>`;
+              html += '</div>';
+              
+              html += '<div class="flex items-center gap-2">';
+              if (isPend) {
+                  html += `<button class="btn-primary py-2 px-4 shadow-none text-xs" onclick="placeOrder(${o.id})">Review & Pay</button>`;
+              } else {
+                  html += `<button class="btn-secondary py-2 px-4 border-transparent bg-[#FAF8F5] text-[#8F8880] text-xs pointer-events-none">Settled</button>`;
+              }
+              html += `<button class="btn-secondary py-2 px-4 text-xs hover:border-[#CCA390] hover:text-[#CCA390]" onclick="cancelOrder(${o.id})">Drop</button>`;
+              html += '</div></div>';
+            });
+            container.innerHTML = html;
+            showToast('Timeline refreshed');
+          })
+          .catch(err => {
+             container.innerHTML = '<div class="card text-center text-red-500">Error loading timeline</div>';
+             showToast(err.message, 'error');
+          });
+    }
+
+    function openPaymentModal(orderId) {
+      paymentOrderId = orderId;
+      document.getElementById('modalOrderId').textContent = '#' + orderId;
+      const modal = document.getElementById('paymentModal');
+      const content = document.getElementById('modalContent');
+      
+      modal.classList.remove('hidden');
+      // trigger animation
+      setTimeout(() => {
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+        document.getElementById('payDetails').focus();
+      }, 10);
+    }
+
+    function closePaymentModal() {
+      const modal = document.getElementById('paymentModal');
+      const content = document.getElementById('modalContent');
+      
+      modal.classList.add('opacity-0');
+      content.classList.remove('scale-100');
+      content.classList.add('scale-95');
+      
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        paymentOrderId = null;
+      }, 300);
+    }
+
+    function confirmPayment() {
+      if (!paymentOrderId) return closePaymentModal();
+      const details = document.getElementById('payDetails').value || 'Auth *4242';
+      const body = { paymentMethodId: null, paymentDetails: details };
+      
+      api('/orders/' + paymentOrderId + '/place', { method: 'PATCH', body: JSON.stringify(body) })
+          .then(order => {
+            showToast('Authorization accepted', 'success');
+            closePaymentModal();
+            loadOrders();
+            renderReceipt(order);
+          })
+          .catch(err => {
+            showToast('Tx Denied: ' + err.message, 'error');
+            closePaymentModal();
+          });
+    }
+
+    function placeOrder(orderId) { openPaymentModal(orderId); }
+
+    function cancelOrder(orderId) {
+      api('/orders/' + orderId + '/cancel', { method: 'PATCH' })
+          .then(() => { showToast('Order erased', 'neutral'); loadOrders(); })
+          .catch(err => showToast(err.message, 'error'));
+    }
+
+    function loadPayments() {
+      api('/payments')
+          .then(data => {
+            const container = document.getElementById('payments');
+            if (!data || !data.length) return container.innerHTML = '<i>Vault is empty.</i>';
+            container.innerHTML = data.map(pm => `<b class="text-[#3B3835]">${pm.methodType}</b> linked to params: ${pm.details}`).join('<br>');
+            document.getElementById('pmType').value = data[0].methodType;
+            document.getElementById('pmDetails').value = data[0].details;
+            showToast('Vault synced');
+          }).catch(err => showToast('Vault Err: ' + err.message, 'error'));
+    }
+
+    function updatePayment() {
+      api('/payments', {
+        method: 'PATCH',
+        body: JSON.stringify({ methodType: document.getElementById('pmType').value, details: document.getElementById('pmDetails').value })
+      }).then(pm => { showToast('Saved to Vault', 'success'); loadPayments(); }).catch(e => showToast(e.message, 'error'));
+    }
+
+    document.getElementById('userSelect').addEventListener('change', () => {
+      showToast('Identity parameters re-calibrated');
+      document.getElementById('restaurants').innerHTML = '<div class="col-span-1 md:col-span-2 text-center text-[#8F8880] py-10">Select "Discover New" to load region-specific menus.</div>';
+      document.getElementById('orders').innerHTML = '<div class="card text-center py-10 text-[#8F8880] shadow-none bg-transparent border-dashed">No recent activity. Refresh to check for updates.</div>';
+      document.getElementById('payments').innerHTML = 'No method loaded.';
+      document.getElementById('receiptSection').classList.add('hidden');
+      cart = { restaurantId: null, items: [] };
+      updateCartBadge();
+      renderCart();
+      switchTab('tab-menu'); // reset to menu
+    });
+
+    function renderReceipt(order) {
+      const text = `INVOICE IDENTIFIER: #${order.id}\nTIMESTAMP: ${new Date().toLocaleString()}\nTXN STATUS: ${order.status}\nSECURE REF: ${order.paymentReference || 'N/A'}\nUSER ID: ${order.userId}\n-----------------------------------\nSETTLED AMOUNT: $${order.totalAmount || '0.00'}\n\n* Keep this copy for secure archiving.`;
+      document.getElementById('receiptContent').textContent = text;
+      const rs = document.getElementById('receiptSection')
+      rs.classList.remove('hidden');
+      rs.classList.remove('animate-fade-in');
+      void rs.offsetWidth;
+      rs.classList.add('animate-fade-in');
+    }
+
+    // Init
+    switchTab('tab-menu');
+    loadRestaurants();
+  </script>
+</body>
+</html>

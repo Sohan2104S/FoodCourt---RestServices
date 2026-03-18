@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Architecture & Flow</title>
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    </script>
+    <style>
+        /* Modern CSS */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        
+        :root {
+            --bg-color: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --primary: #3b82f6;
+            --accent: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-color), #020617);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 4rem;
+            animation: fadeIn 1s ease-in;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: -webkit-linear-gradient(45deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: 1fr;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: var(--primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .tech-badge {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .tech-badge:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .mermaid {
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            margin-top: 1.5rem;
+            overflow-x: auto;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        p {
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        ul {
+            color: var(--text-muted);
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive grid */
+        @media (min-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>REST API Architecture</h1>
+        <p>System Overview & Request Processing Flow</p>
+    </header>
+
+    <div class="container grid-2">
+        <div class="card">
+            <h2>🛠️ Tech Stack</h2>
+            <p>The backend is built with modern, robust technologies ensuring scalability and maintainability.</p>
+            <div class="tech-stack">
+                <span class="tech-badge">Java 17+</span>
+                <span class="tech-badge">Spring Boot 3</span>
+                <span class="tech-badge">RESTful APIs</span>
+                <span class="tech-badge">In-Memory DataStore</span>
+                <span class="tech-badge">Role-based Access Control</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🧩 Core Components</h2>
+            <p>The system is divided into clean architectural layers for the Restaurant Application:</p>
+            <ul>
+                <li><strong style="color:var(--text-main)">Controllers:</strong> Order, Restaurant, Payment - handle incoming HTTP requests.</li>
+                <li><strong style="color:var(--text-main)">Services:</strong> AccessControl, PaymentGateway, Email - contain the business logic.</li>
+                <li><strong style="color:var(--text-main)">DataStore:</strong> Centralized in-memory repository simulating database state.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container" style="margin-top: 2rem;">
+        <div class="card">
+            <h2>🔄 Request Processing Flow (Place Order)</h2>
+            <p>This sequence diagram illustrates exactly how a request travels through the system when a user places an order.</p>
+            <div class="mermaid">
+                sequenceDiagram
+                    autonumber
+                    participant Client
+                    participant OrderController
+                    participant Security as Resolver & AccessControl
+                    participant DataStore
+                    participant PaymentGateway
+                    participant EmailService
+
+                    Client->>OrderController: PATCH /orders/{id}/place
+                    OrderController->>Security: getCurrentUser()
+                    Security-->>OrderController: User Details
+                    OrderController->>Security: checkAccess(user, PLACE_ORDER)
+                    OrderController->>DataStore: findOrderById(id)
+                    DataStore-->>OrderController: Order Info
+                    Note over OrderController: Validates constraints
+                    OrderController->>PaymentGateway: processPayment(...)
+                    PaymentGateway-->>OrderController: Payment Result (Success)
+                    OrderController->>DataStore: updateOrder(Status=PLACED)
+                    OrderController->>EmailService: sendOrderReceipt()
+                    EmailService-->>OrderController: Sent
+                    OrderController-->>Client: 200 OK (Updated Order)
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📊 Domain Model (Entities)</h2>
+            <p>The core entities managed by the system and how they relate to each other.</p>
+             <div class="mermaid">
+                erDiagram
+                    USER ||--o{ ORDER : places
+                    USER ||--o{ PAYMENT_METHOD : owns
+                    RESTAURANT ||--o{ MENU_ITEM : offers
+                    RESTAURANT ||--o{ ORDER : receives
+                    ORDER ||--|{ ORDER_ITEM : contains
+                    
+                    USER {
+                        Long id
+                        String name
+                        Role role
+                    }
+                    RESTAURANT {
+                        Long id
+                        String name
+                        Country country
+                    }
+                    ORDER {
+                        Long id
+                        OrderStatus status
+                        Country country
+                    }
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
