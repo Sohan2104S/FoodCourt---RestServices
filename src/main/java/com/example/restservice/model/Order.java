@@ -34,6 +34,7 @@ public class Order {
   
   private Long paymentMethodId;
   private String paymentReference;
+  private String razorpayOrderId;
 
   public Order() {}
 
@@ -72,6 +73,8 @@ public class Order {
   public void setPaymentMethodId(Long paymentMethodId) { this.paymentMethodId = paymentMethodId; }
   public String getPaymentReference() { return paymentReference; }
   public void setPaymentReference(String paymentReference) { this.paymentReference = paymentReference; }
+  public String getRazorpayOrderId() { return razorpayOrderId; }
+  public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
 
   public BigDecimal getTotalAmount() {
     if (items == null) return BigDecimal.ZERO;

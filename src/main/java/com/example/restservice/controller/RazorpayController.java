@@ -62,7 +62,11 @@ public class RazorpayController {
       throw new IllegalStateException("Order is not payable. Status: " + order.getStatus());
     }
 
-    return razorpayService.createCheckoutOrder(order, user);
+    RazorpayService.RazorpayCheckout checkout = razorpayService.createCheckoutOrder(order, user);
+    order.setRazorpayOrderId(checkout.razorpayOrderId());
+    dataStore.updateOrder(order);
+
+    return checkout;
   }
 
   public record VerifyPaymentRequest(
@@ -84,6 +88,10 @@ public class RazorpayController {
         .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
 
     assertCountryAccess(user, order);
+
+    if (order.getRazorpayOrderId() == null || !order.getRazorpayOrderId().equals(request.razorpayOrderId())) {
+      throw new IllegalStateException("Payment verification failed. Mismatched Razorpay Order ID.");
+    }
 
     boolean valid = razorpayService.verifyPaymentSignature(
         request.razorpayOrderId(),

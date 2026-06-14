@@ -155,9 +155,9 @@
             <span class="text-sm font-medium text-[#8F8880]">Total</span>
             <span id="cart-total" class="text-2xl font-bold text-[#2C2A28]">$0.00</span>
           </div>
-          <button onclick="createOrder()" class="btn-primary w-full text-base py-4 hover:shadow-xl transition-all">
-            Secure Checkout
-            <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          <button onclick="createOrder()" class="btn-primary w-full flex items-center justify-center py-3.5 hover:shadow-xl transition-all group">
+            <span class="text-base font-medium">Secure Checkout</span>
+            <svg class="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
         </div>
       </div>
@@ -340,7 +340,7 @@
                 html += `<div class="flex items-center gap-4">${imgHtml}<div><p class="text-sm font-medium text-[#3B3835] group-hover:text-[#798D7B] transition-colors">${m.name}</p></div></div>`;
                 html += '<div class="flex items-center gap-3">';
                 html += `<span class="text-[#8F8880] text-sm tabular-nums">$${m.price.toFixed(2)}</span>`;
-                html += `<button class="btn-secondary px-3 py-1.5 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all border-[#EBE6E0]" onclick="addToCart(${r.id},${m.id},'${m.name}',${m.price})">Add</button>`;
+                html += `<button class="btn-secondary px-3 py-1.5 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all border-[#EBE6E0]" onclick="addToCart(${r.id}, ${m.id}, '${m.name.replace(/'/g, "\\'")}', ${m.price}, '${m.imageUrl || ''}')">Add</button>`;
                 html += '</div></div>';
               });
               html += '</div></div>';
@@ -354,13 +354,13 @@
           });
     }
 
-    function addToCart(restaurantId, menuItemId, name, price) {
+    function addToCart(restaurantId, menuItemId, name, price, imageUrl) {
       if (cart.restaurantId && cart.restaurantId !== restaurantId) {
         if(!confirm('Switching restaurants clears your current cart. Proceed?')) return;
         cart = { restaurantId: null, items: [] };
       }
       cart.restaurantId = restaurantId;
-      cart.items.push({ menuItemId, quantity: 1, name, price });
+      cart.items.push({ menuItemId, quantity: 1, name, price, imageUrl });
       updateCartBadge();
       renderCart();
       showToast(`Added ${name}`, 'success');
@@ -378,11 +378,12 @@
       }
       
       let total = 0;
-      let html = `<div class="mb-5 animate-fade-in"><span class="badge badge-manager shadow-sm">Preparing from Kitchen ID #${cart.restaurantId}</span></div><div class="space-y-3">`;
+      let html = `<div class="mb-5 animate-fade-in"><span class="badge badge-manager shadow-sm">Preparing from Kitchen ID #${cart.restaurantId}</span></div><div class="space-y-4">`;
       cart.items.forEach((i, idx) => {
         total += i.price;
-        html += `<div class="flex justify-between items-center text-sm p-4 rounded-xl border border-[#EBE6E0] bg-[#FAF8F5] transition-all hover:border-[#D4CFC6] animate-fade-in" style="animation-delay: ${idx * 0.05}s">`;
-        html += `<span class="font-medium text-[#2C2A28]">${i.name}</span><span class="text-[#8F8880] tabular-nums">$${i.price.toFixed(2)}</span></div>`;
+        let imgHtml = i.imageUrl ? `<img src="${i.imageUrl}" class="w-14 h-14 rounded-xl object-cover border border-[#EBE6E0] shadow-sm">` : `<div class="w-14 h-14 rounded-xl bg-[#EBE6E0] border border-[#D4CFC6] flex items-center justify-center text-[10px] text-[#8F8880]">No img</div>`;
+        html += `<div class="flex justify-between items-center text-sm p-3 rounded-2xl border border-[#EBE6E0] bg-white transition-all hover:border-[#D4CFC6] hover:shadow-md animate-fade-in group" style="animation-delay: ${idx * 0.05}s">`;
+        html += `<div class="flex items-center gap-4">${imgHtml}<div class="flex flex-col"><span class="font-medium text-[#2C2A28] text-base group-hover:text-[#798D7B] transition-colors">${i.name}</span><span class="text-xs text-[#8F8880] mt-0.5">Qty: 1</span></div></div><span class="text-[#2C2A28] font-semibold text-base tabular-nums mr-2">$${i.price.toFixed(2)}</span></div>`;
       });
       html += '</div>';
       el.innerHTML = html;

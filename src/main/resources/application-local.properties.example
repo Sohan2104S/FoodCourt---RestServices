@@ -1,7 +1,0 @@
-# Copy this file to application-local.properties and fill in your Razorpay TEST keys.
-# Never commit application-local.properties to Git.
-
-razorpay.enabled=true
-razorpay.key-id=rzp_test_XXXXXXXXXXXXXXXX
-razorpay.key-secret=YOUR_TEST_KEY_SECRET
-razorpay.currency=INR
