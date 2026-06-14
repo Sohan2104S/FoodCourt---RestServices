@@ -2,6 +2,6 @@
 # Never commit application-local.properties to Git.
 
 razorpay.enabled=true
-razorpay.key-id=rzp_test_XXXXXXXXXXXXXXXX
-razorpay.key-secret=YOUR_TEST_KEY_SECRET
+razorpay.key-id=rzp_test_T1RzLna11NVden
+razorpay.key-secret=3e6mUoK7G58tvCe0yaSJBW6c
 razorpay.currency=INR
