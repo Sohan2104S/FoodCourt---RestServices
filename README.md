@@ -10,6 +10,111 @@ This project implements the take‑home assignment:
 - Enforce role‑based access control (RBAC) for **Admin / Manager / Member**
 - Bonus: Managers and Members are limited to data from **their own country** (India / America)
 
+## Data storage
+
+**There is no database in this project yet.**
+
+All data lives **in memory** inside:
+
+`src/main/java/com/example/restservice/service/DataStore.java`
+
+| Data | Storage |
+|------|---------|
+| Users | `Map<Long, User> users` |
+| Restaurants & menus | `Map<Long, Restaurant> restaurants` |
+| Orders | `Map<Long, Order> orders` |
+| Payment methods | `Map<Long, PaymentMethod> paymentMethods` |
+
+- Data is **seeded on startup** in `seedUsers()`, `seedRestaurants()`, `seedPaymentMethods()`.
+- When you **restart the app**, all orders are **lost** (fresh seed data).
+- For production you would add **PostgreSQL/MySQL + JPA** and replace `DataStore` with repositories.
+
+---
+
+## Razorpay TEST mode setup (step-by-step)
+
+### Step 1 — Create a Razorpay test account
+
+1. Go to [https://razorpay.com](https://razorpay.com) and sign up.
+2. Open **Dashboard → Test Mode** (toggle at top).
+3. Go to **Account & Settings → API Keys**.
+4. Click **Generate Test Key** and copy:
+   - **Key ID** → `rzp_test_...`
+   - **Key Secret** → keep private
+
+### Step 2 — Add keys to your project (local only)
+
+1. Copy the example file:
+
+```powershell
+cd complete
+copy src\main\resources\application-local.properties.example src\main\resources\application-local.properties
+```
+
+2. Edit `application-local.properties`:
+
+```properties
+razorpay.enabled=true
+razorpay.key-id=rzp_test_YOUR_KEY_ID
+razorpay.key-secret=YOUR_KEY_SECRET
+razorpay.currency=INR
+```
+
+3. **Never commit** `application-local.properties` (it is in `.gitignore`).
+
+Spring Boot auto-loads `application-local.properties` when present.
+
+### Step 3 — Run the app
+
+```powershell
+cd complete
+.\mvnw.cmd spring-boot:run
+```
+
+Open `http://localhost:8080/`. If Razorpay is configured, you will see toast: **"Razorpay TEST mode active"**.
+
+### Step 4 — Test payment flow
+
+1. Login as **Captain Marvel** (Manager, India) or **Nick Fury** (Admin).
+2. Add items from an **India** restaurant → **Create Order**.
+3. Go to **Orders** → click **Review & Pay**.
+4. Razorpay checkout popup opens (not the demo modal).
+5. Use Razorpay **test card**:
+   - Card: `4111 1111 1111 1111`
+   - Expiry: any future date
+   - CVV: any 3 digits
+6. On success:
+   - Order status → `PLACED`
+   - Payment ref → `RZP-pay_...`
+   - Receipt shown on page
+   - Email receipt **logged in server console** (see `EmailService`)
+
+### Step 5 — API endpoints (for Postman)
+
+| Method | URL | Purpose |
+|--------|-----|---------|
+| GET | `/payments/config` | Check if Razorpay is enabled |
+| POST | `/payments/razorpay/orders/{id}/create` | Create Razorpay order |
+| POST | `/payments/razorpay/orders/{id}/verify` | Verify payment & place order |
+
+Header required: `X-USER-ID: 1` (or 2–6)
+
+Verify body:
+
+```json
+{
+  "razorpayOrderId": "order_xxx",
+  "razorpayPaymentId": "pay_xxx",
+  "razorpaySignature": "signature_xxx"
+}
+```
+
+### Demo mode (no Razorpay keys)
+
+If `razorpay.enabled=false` or keys are empty, the app uses **Demo Payment** (fake gateway + manual auth modal).
+
+---
+
 ## Tech stack
 
 - Java 17

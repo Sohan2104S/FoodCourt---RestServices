@@ -5,6 +5,7 @@
   <title>Food Ordering Japandi Console - Interactive</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
     body {
@@ -52,10 +53,12 @@
     .card-subtitle { @apply text-xs text-[#8F8880] mt-1.5 leading-relaxed; }
 
     /* Buttons */
-    .btn-primary { @apply relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md transform hover:-translate-y-0.5 hover:shadow-lg active:scale-95; background-color: #798D7B; color: white; border: 1px solid transparent; }
-    .btn-primary:hover { background-color: #647666; }
-    .btn-secondary { @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95; background-color: #FAF8F5; color: #3B3835; border: 1px solid #EBE6E0; hover:border-[#D4CFC6] hover:bg-white hover:shadow-md; }
-    .btn-danger { @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95; background-color: #FAF8F5; color: #CCA390; border: 1px solid #EBE6E0; hover:bg-[#CCA390] hover:text-white hover:border-transparent hover:shadow-md; }
+    .btn-primary { @apply relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-sm font-medium transition-all duration-300 shadow-md transform active:scale-95; background-color: #798D7B; color: white; border: 1px solid transparent; }
+    .btn-primary:hover { background-color: #647666; transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 15px -3px rgba(121, 141, 123, 0.4), 0 4px 6px -2px rgba(121, 141, 123, 0.2); }
+    .btn-secondary { @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 transform active:scale-95; background-color: #FAF8F5; color: #3B3835; border: 1px solid #EBE6E0; }
+    .btn-secondary:hover { border-color: #D4CFC6; background-color: white; transform: translateY(-2px) scale(1.02); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+    .btn-danger { @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 transform active:scale-95; background-color: #FAF8F5; color: #CCA390; border: 1px solid #EBE6E0; }
+    .btn-danger:hover { background-color: #CCA390; color: white; border-color: transparent; transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 15px -3px rgba(204, 163, 144, 0.4), 0 4px 6px -2px rgba(204, 163, 144, 0.2); }
     
     /* Inputs */
     .input-field { @apply w-full rounded-2xl border border-[#EBE6E0] bg-[#FAF8F5] px-4 py-3.5 text-sm text-[#3B3835] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#798D7B]/20 focus:border-[#798D7B] focus:bg-white shadow-sm hover:border-[#D4CFC6]; }
@@ -244,6 +247,7 @@
   <script>
     let cart = { restaurantId: null, items: [] };
     let paymentOrderId = null;
+    let paymentConfig = { razorpayEnabled: false, razorpayKeyId: null };
 
     // UI Utilities
     function showToast(message, type = 'neutral') {
@@ -329,10 +333,11 @@
               html += `<span class="badge ${r.country === 'INDIA' ? 'badge-india' : 'badge-america'}">${r.country}</span>`;
               html += '</div>';
               html += '</div>';
-              html += '<div class="space-y-4">';
+              html += '<div class="space-y-5">';
               r.menuItems.forEach(m => {
+                let imgHtml = m.imageUrl ? `<img src="${m.imageUrl}" alt="${m.name}" class="w-12 h-12 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform duration-300">` : `<div class="w-12 h-12 rounded-xl bg-[#EBE6E0] flex items-center justify-center text-[#8F8880] text-xs">No img</div>`;
                 html += '<div class="flex items-center justify-between group">';
-                html += `<div><p class="text-sm font-medium text-[#3B3835] group-hover:text-[#798D7B] transition-colors">${m.name}</p></div>`;
+                html += `<div class="flex items-center gap-4">${imgHtml}<div><p class="text-sm font-medium text-[#3B3835] group-hover:text-[#798D7B] transition-colors">${m.name}</p></div></div>`;
                 html += '<div class="flex items-center gap-3">';
                 html += `<span class="text-[#8F8880] text-sm tabular-nums">$${m.price.toFixed(2)}</span>`;
                 html += `<button class="btn-secondary px-3 py-1.5 text-xs rounded-lg shadow-none opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all border-[#EBE6E0]" onclick="addToCart(${r.id},${m.id},'${m.name}',${m.price})">Add</button>`;
@@ -497,7 +502,67 @@
           });
     }
 
-    function placeOrder(orderId) { openPaymentModal(orderId); }
+    function loadPaymentConfig() {
+      return api('/payments/config')
+          .then(cfg => {
+            paymentConfig = cfg || paymentConfig;
+            if (paymentConfig.razorpayEnabled) {
+              showToast('Razorpay TEST mode active', 'success');
+            }
+          })
+          .catch(() => { /* demo mode fallback */ });
+    }
+
+    function placeOrder(orderId) {
+      if (paymentConfig.razorpayEnabled) {
+        startRazorpayCheckout(orderId);
+      } else {
+        openPaymentModal(orderId);
+      }
+    }
+
+    function startRazorpayCheckout(orderId) {
+      api('/payments/razorpay/orders/' + orderId + '/create', { method: 'POST' })
+          .then(checkout => {
+            const options = {
+              key: checkout.keyId,
+              amount: checkout.amount,
+              currency: checkout.currency,
+              name: 'Food Ordering App',
+              description: 'Order #' + orderId,
+              order_id: checkout.razorpayOrderId,
+              prefill: {
+                name: checkout.customerName,
+                email: checkout.customerEmail
+              },
+              theme: { color: '#798D7B' },
+              handler: function (response) {
+                api('/payments/razorpay/orders/' + orderId + '/verify', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    razorpayOrderId: response.razorpay_order_id,
+                    razorpayPaymentId: response.razorpay_payment_id,
+                    razorpaySignature: response.razorpay_signature
+                  })
+                })
+                    .then(order => {
+                      showToast('Razorpay payment successful!', 'success');
+                      loadOrders();
+                      renderReceipt(order);
+                    })
+                    .catch(err => showToast('Verification failed: ' + err.message, 'error'));
+              },
+              modal: {
+                ondismiss: function () {
+                  showToast('Payment cancelled', 'neutral');
+                }
+              }
+            };
+            const rzp = new Razorpay(options);
+            rzp.open();
+          })
+          .catch(err => showToast('Razorpay error: ' + err.message, 'error'));
+    }
 
     function cancelOrder(orderId) {
       api('/orders/' + orderId + '/cancel', { method: 'PATCH' })
@@ -548,7 +613,7 @@
 
     // Init
     switchTab('tab-menu');
-    loadRestaurants();
+    loadPaymentConfig().then(() => loadRestaurants());
   </script>
 </body>
 </html>

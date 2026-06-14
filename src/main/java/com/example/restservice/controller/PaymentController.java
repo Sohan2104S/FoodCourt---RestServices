@@ -1,5 +1,6 @@
 package com.example.restservice.controller;
 
+import com.example.restservice.config.RazorpayProperties;
 import com.example.restservice.model.Action;
 import com.example.restservice.model.PaymentMethod;
 import com.example.restservice.model.User;
@@ -20,15 +21,28 @@ public class PaymentController {
   private final DataStore dataStore;
   private final CurrentUserResolver currentUserResolver;
   private final AccessControlService accessControlService;
+  private final RazorpayProperties razorpayProperties;
 
   public PaymentController(
       DataStore dataStore,
       CurrentUserResolver currentUserResolver,
-      AccessControlService accessControlService
+      AccessControlService accessControlService,
+      RazorpayProperties razorpayProperties
   ) {
     this.dataStore = dataStore;
     this.currentUserResolver = currentUserResolver;
     this.accessControlService = accessControlService;
+    this.razorpayProperties = razorpayProperties;
+  }
+
+  public record PaymentConfigResponse(boolean razorpayEnabled, String razorpayKeyId) { }
+
+  @GetMapping("/config")
+  public PaymentConfigResponse getPaymentConfig() {
+    return new PaymentConfigResponse(
+        razorpayProperties.isEnabled(),
+        razorpayProperties.isEnabled() ? razorpayProperties.getKeyId() : null
+    );
   }
 
   @GetMapping
